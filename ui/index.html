@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ShortBot</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+    <div class="app">
+
+        <header>
+
+            <h1>ShortBot</h1>
+
+            <p>
+                Find the YouTube Shorts you're looking for.
+            </p>
+
+        </header>
+
+
+        <main>
+
+            <label for="request">
+                What Shorts are you looking for?
+            </label>
+
+            <textarea
+                id="request"
+                placeholder="Example: Minecraft Shorts showing funny things villagers do"
+            ></textarea>
+
+
+            <label for="quantity">
+                Number of Shorts
+            </label>
+
+            <input
+                type="number"
+                id="quantity"
+                min="1"
+                value="5"
+            >
+
+
+            <label for="watermark">
+                Watermark
+            </label>
+
+            <input
+                type="text"
+                id="watermark"
+                placeholder="@YourHandle"
+                maxlength="50"
+            >
+
+            <p class="field-help">
+                This watermark will appear on the compiled video.
+            </p>
+
+
+            <button id="searchButton">
+                FIND SHORTS
+            </button>
+
+
+            <section id="results">
+
+                <h2>Results</h2>
+
+                <p id="status">
+                    Enter a request and click "Find Shorts".
+                </p>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>

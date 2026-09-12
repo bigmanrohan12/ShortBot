@@ -1,0 +1,268 @@
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+}
+
+
+.app {
+    width: 700px;
+    max-width: 90%;
+    margin: 60px auto;
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+
+header {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+
+header h1 {
+    margin: 0 0 10px;
+    font-size: 36px;
+}
+
+
+header p {
+    margin: 0;
+    color: #666;
+    font-size: 16px;
+}
+
+
+main {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+
+label {
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+
+textarea {
+    width: 100%;
+    height: 100px;
+    padding: 14px;
+    font-size: 16px;
+    font-family: inherit;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    resize: vertical;
+}
+
+
+textarea:focus {
+    outline: none;
+    border-color: #222;
+}
+
+
+input {
+    width: 100%;
+    max-width: 350px;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+
+input:focus {
+    outline: none;
+    border-color: #222;
+}
+
+
+#quantity {
+    width: 120px;
+}
+
+
+.field-help {
+    margin: -4px 0 5px;
+    color: #777;
+    font-size: 13px;
+}
+
+
+button {
+    margin-top: 15px;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #222;
+    color: white;
+}
+
+
+button:hover {
+    background: #444;
+}
+
+
+button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+
+#results {
+    margin-top: 35px;
+}
+
+
+#results h2 {
+    margin-bottom: 15px;
+}
+
+
+#status {
+    color: #666;
+}
+
+
+/* Individual Short */
+
+.short-card {
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fafafa;
+}
+
+
+.short-card h3 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.4;
+}
+
+
+.short-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+
+.watch-button,
+.download-button {
+    display: inline-block;
+    padding: 10px 14px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+
+.watch-button {
+    background: #222;
+    color: white;
+}
+
+
+.watch-button:hover {
+    background: #444;
+}
+
+
+.download-button {
+    margin-top: 0;
+    background: #ddd;
+    color: #222;
+}
+
+
+.download-button:hover {
+    background: #ccc;
+}
+
+
+.download-button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+
+/* Selection controls */
+
+#selectionControls {
+    margin-top: 25px;
+    padding: 20px;
+    border-top: 1px solid #ddd;
+}
+
+
+#selectionInfo {
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+
+
+#downloadSelectedButton,
+#compileSelectedButton {
+    width: 100%;
+    margin-top: 8px;
+}
+
+
+#compileSelectedButton {
+    background: #111;
+}
+
+
+#compileSelectedButton:hover {
+    background: #333;
+}
+
+
+/* Mobile */
+
+@media (max-width: 600px) {
+
+    .app {
+        width: 100%;
+        max-width: 94%;
+        margin: 20px auto;
+        padding: 25px;
+    }
+
+
+    header h1 {
+        font-size: 28px;
+    }
+
+
+    .short-buttons {
+        flex-direction: column;
+    }
+
+
+    .watch-button,
+    .download-button {
+        width: 100%;
+        text-align: center;
+    }
+
+}
