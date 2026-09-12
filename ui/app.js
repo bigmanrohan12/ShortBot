@@ -211,9 +211,6 @@ async function downloadShort(
     button.textContent =
         "DOWNLOADING...";
 
-    status.textContent =
-        "Downloading Short...";
-
     try {
 
         const watermark =
@@ -340,22 +337,10 @@ async function downloadShort(
         button.dataset.downloaded =
             "true";
 
-        status.textContent =
-            watermark
-                ? "Short downloaded with watermark successfully."
-                : "Short downloaded successfully.";
-
-        await refreshDownloadedFiles();
-
-        setTimeout(
-            function () {
-
-                button.disabled =
-                    false;
-
-            },
-            1000
-        );
+        return {
+            success: true,
+            filename: filename
+        };
 
     }
 
@@ -369,27 +354,14 @@ async function downloadShort(
         button.textContent =
             "DOWNLOAD FAILED";
 
-        status.textContent =
-            "Download failed: " +
-            error.message;
+        throw error;
 
-        alert(
-            "Could not download this Short: " +
-            error.message
-        );
+    }
 
-        setTimeout(
-            function () {
+    finally {
 
-                button.disabled =
-                    false;
-
-                button.textContent =
-                    "DOWNLOAD";
-
-            },
-            2000
-        );
+        button.disabled =
+            false;
 
     }
 
@@ -397,7 +369,7 @@ async function downloadShort(
 
 
 // --------------------------------------------------
-// DOWNLOAD SELECTED
+// DOWNLOAD SELECTED IN PARALLEL
 // --------------------------------------------------
 
 async function downloadSelected() {
@@ -424,55 +396,184 @@ async function downloadSelected() {
         true;
 
     button.textContent =
-        "DOWNLOADING SELECTED...";
+        "DOWNLOADING...";
+
+    const startTime =
+        performance.now();
+
+    const watermark =
+        getWatermark();
 
     try {
 
-        for (
-            let i = 0;
-            i < selectedShorts.length;
-            i++
+        const shortsToDownload =
+            selectedShorts.filter(
+                function (short) {
+
+                    return !(
+                        short.downloadedFilename &&
+                        downloadedFiles[
+                            short.downloadedFilename
+                        ]
+                    );
+
+                }
+            );
+
+        const alreadyDownloaded =
+            selectedShorts.length -
+            shortsToDownload.length;
+
+        if (
+            shortsToDownload.length === 0
         ) {
 
-            const short =
-                selectedShorts[i];
-
-            const individualButton =
-                document.getElementById(
-                    `download-button-${short.index}`
-                );
-
-            if (
-                individualButton &&
-                individualButton.dataset.downloaded ===
-                    "true"
-            ) {
-
-                continue;
-
-            }
-
             status.textContent =
-                `Downloading selected Short ${i + 1} of ${selectedShorts.length}...`;
+                "All selected Shorts are already downloaded. ✓";
 
-            if (individualButton) {
+            return;
 
-                await downloadShort(
-                    short,
-                    individualButton
-                );
+        }
+
+        /*
+         * Run up to 3 downloads at once.
+         *
+         * This is much faster than downloading
+         * every Short one-by-one.
+         */
+
+        const MAX_CONCURRENT =
+            3;
+
+        let nextIndex =
+            0;
+
+        let completed =
+            alreadyDownloaded;
+
+        let failed =
+            0;
+
+        async function worker() {
+
+            while (true) {
+
+                const currentIndex =
+                    nextIndex++;
+
+                if (
+                    currentIndex >=
+                    shortsToDownload.length
+                ) {
+
+                    return;
+
+                }
+
+                const short =
+                    shortsToDownload[
+                        currentIndex
+                    ];
+
+                const individualButton =
+                    document.getElementById(
+                        `download-button-${short.index}`
+                    );
+
+                completed++;
+
+                status.textContent =
+                    `Downloading Shorts... ${completed}/${selectedShorts.length}`;
+
+                try {
+
+                    if (individualButton) {
+
+                        await downloadShort(
+                            short,
+                            individualButton
+                        );
+
+                    }
+
+                }
+
+                catch (error) {
+
+                    failed++;
+
+                    console.error(
+                        "Selected download failed:",
+                        short.title,
+                        error
+                    );
+
+                }
+
+                completed++;
+
+                status.textContent =
+                    `Downloading Shorts... ${Math.min(
+                        completed,
+                        selectedShorts.length
+                    )}/${selectedShorts.length}`;
 
             }
 
         }
 
-        const watermark =
-            getWatermark();
+        const workerCount =
+            Math.min(
+                MAX_CONCURRENT,
+                shortsToDownload.length
+            );
 
-        status.textContent =
-            watermark
-                ? `Downloaded ${selectedShorts.length} selected Shorts with watermark. ✓`
-                : `Downloaded ${selectedShorts.length} selected Shorts. ✓`;
+        const workers = [];
+
+        for (
+            let i = 0;
+            i < workerCount;
+            i++
+        ) {
+
+            workers.push(
+                worker()
+            );
+
+        }
+
+        await Promise.all(
+            workers
+        );
+
+        await refreshDownloadedFiles();
+
+        const elapsedSeconds =
+            (
+                performance.now() -
+                startTime
+            ) / 1000;
+
+        if (failed > 0) {
+
+            status.textContent =
+                `Downloaded selected Shorts in ${elapsedSeconds.toFixed(
+                    1
+                )}s. ${failed} failed.`;
+
+        }
+        else {
+
+            status.textContent =
+                watermark
+                    ? `Downloaded ${selectedShorts.length} selected Shorts with watermark in ${elapsedSeconds.toFixed(
+                        1
+                    )}s. ✓`
+                    : `Downloaded ${selectedShorts.length} selected Shorts in ${elapsedSeconds.toFixed(
+                        1
+                    )}s. ✓`;
+
+        }
 
     }
 
@@ -482,6 +583,10 @@ async function downloadSelected() {
             "Selected download error:",
             error
         );
+
+        status.textContent =
+            "Selected download failed: " +
+            error.message;
 
     }
 
@@ -543,45 +648,138 @@ async function compileSelected() {
 
     try {
 
-        for (
-            let i = 0;
-            i < selectedShorts.length;
-            i++
+        /*
+         * First make sure every selected Short
+         * is downloaded.
+         *
+         * This now uses parallel downloads.
+         */
+
+        const shortsToDownload =
+            selectedShorts.filter(
+                function (short) {
+
+                    return !(
+                        short.downloadedFilename &&
+                        downloadedFiles[
+                            short.downloadedFilename
+                        ]
+                    );
+
+                }
+            );
+
+        if (
+            shortsToDownload.length > 0
         ) {
 
-            const short =
-                selectedShorts[i];
+            status.textContent =
+                `Downloading ${shortsToDownload.length} selected Shorts...`;
 
-            const individualButton =
-                document.getElementById(
-                    `download-button-${short.index}`
-                );
+            const MAX_CONCURRENT =
+                3;
 
-            if (
-                !individualButton ||
-                individualButton.dataset.downloaded !==
-                    "true"
-            ) {
+            let nextIndex =
+                0;
 
-                status.textContent =
-                    `Downloading selected Short ${i + 1} of ${selectedShorts.length}...`;
+            let completed =
+                0;
 
-                if (individualButton) {
+            async function worker() {
 
-                    await downloadShort(
-                        short,
-                        individualButton
-                    );
+                while (true) {
+
+                    const currentIndex =
+                        nextIndex++;
+
+                    if (
+                        currentIndex >=
+                        shortsToDownload.length
+                    ) {
+
+                        return;
+
+                    }
+
+                    const short =
+                        shortsToDownload[
+                            currentIndex
+                        ];
+
+                    const individualButton =
+                        document.getElementById(
+                            `download-button-${short.index}`
+                        );
+
+                    status.textContent =
+                        `Downloading selected Shorts...`;
+
+                    try {
+
+                        if (individualButton) {
+
+                            await downloadShort(
+                                short,
+                                individualButton
+                            );
+
+                        }
+
+                    }
+
+                    catch (error) {
+
+                        console.error(
+                            "Download failed during compilation:",
+                            short.title,
+                            error
+                        );
+
+                    }
+
+                    completed++;
+
+                    status.textContent =
+                        `Downloaded ${completed}/${shortsToDownload.length} new Shorts...`;
 
                 }
 
             }
+
+            const workerCount =
+                Math.min(
+                    MAX_CONCURRENT,
+                    shortsToDownload.length
+                );
+
+            const workers = [];
+
+            for (
+                let i = 0;
+                i < workerCount;
+                i++
+            ) {
+
+                workers.push(
+                    worker()
+                );
+
+            }
+
+            await Promise.all(
+                workers
+            );
 
         }
 
         await refreshDownloadedFiles();
 
         const filesToCompile = [];
+
+        /*
+         * Preserve the exact order in which the
+         * Shorts appear in the search results.
+         */
 
         for (
             let i = 0;
@@ -607,7 +805,9 @@ async function compileSelected() {
 
         }
 
-        if (filesToCompile.length < 2) {
+        if (
+            filesToCompile.length < 2
+        ) {
 
             throw new Error(
                 "Could not identify at least 2 downloaded Shorts."
@@ -630,6 +830,9 @@ async function compileSelected() {
 
         compileButton.textContent =
             "COMPILING...";
+
+        const compileStartTime =
+            performance.now();
 
         const response =
             await fetch(
@@ -711,10 +914,20 @@ async function compileSelected() {
             blobUrl
         );
 
+        const compileElapsedSeconds =
+            (
+                performance.now() -
+                compileStartTime
+            ) / 1000;
+
         status.textContent =
             watermark
-                ? `Compilation complete! ${filesToCompile.length} Shorts combined with watermark. ✓`
-                : `Compilation complete! ${filesToCompile.length} Shorts combined without watermark. ✓`;
+                ? `Compilation complete! ${filesToCompile.length} Shorts combined with watermark in ${compileElapsedSeconds.toFixed(
+                    1
+                )}s. ✓`
+                : `Compilation complete! ${filesToCompile.length} Shorts combined in ${compileElapsedSeconds.toFixed(
+                    1
+                )}s. ✓`;
 
         compileButton.textContent =
             "COMPILED ✓";
@@ -980,12 +1193,46 @@ function renderShorts(
 
             downloadButton.addEventListener(
                 "click",
-                function () {
+                async function () {
 
-                    downloadShort(
-                        short,
-                        downloadButton
-                    );
+                    try {
+
+                        await downloadShort(
+                            short,
+                            downloadButton
+                        );
+
+                        await refreshDownloadedFiles();
+
+                        status.textContent =
+                            getWatermark()
+                                ? "Short downloaded with watermark successfully. ✓"
+                                : "Short downloaded successfully. ✓";
+
+                    }
+
+                    catch (error) {
+
+                        status.textContent =
+                            "Download failed: " +
+                            error.message;
+
+                        alert(
+                            "Could not download this Short: " +
+                            error.message
+                        );
+
+                        setTimeout(
+                            function () {
+
+                                downloadButton.textContent =
+                                    "DOWNLOAD";
+
+                            },
+                            2000
+                        );
+
+                    }
 
                 }
             );
